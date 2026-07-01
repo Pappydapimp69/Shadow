@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#14181c">
+<!-- iter 5: installable / offline app. Inline manifest + icon (SVG data URI) so it stays single-file. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dog Soundboard">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' fill='%2314181c'/%3E%3Ctext y='130' x='90' font-size='120' text-anchor='middle'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Blind%20Dog%20Soundboard%22%2C%22short_name%22%3A%22Dog%20Board%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%2312161a%22%2C%22theme_color%22%3A%22%2314181c%22%2C%22start_url%22%3A%22.%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2527%2520width%253D%2527192%2527%2520height%253D%2527192%2527%253E%253Crect%2520width%253D%2527192%2527%2520height%253D%2527192%2527%2520fill%253D%2527%252314181c%2527%252F%253E%253Ctext%2520y%253D%2527140%2527%2520x%253D%252796%2527%2520font-size%253D%2527130%2527%2520text-anchor%253D%2527middle%2527%253E%25F0%259F%2590%25BE%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 <title>Blind Dog Soundboard</title>
 <style>
   :root{
@@ -138,6 +145,25 @@
   .btn-primary:focus-visible{outline:3px solid #fff;outline-offset:2px;}
   .btn-ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
   #previewBtn.playing{background:var(--danger);color:#fff;border-color:var(--danger);}
+
+  #respToast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:88px;
+    width:calc(100% - 32px);max-width:448px;z-index:50;
+    background:var(--panel2);border:1px solid var(--line);border-radius:14px;
+    padding:10px 12px;display:none;align-items:center;gap:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.45);
+  }
+  #respToast.show{display:flex;}
+  #respToast .rt-text{flex:1;font-size:0.9rem;}
+  .rt-btn{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    font-size:1.25rem;width:46px;height:46px;cursor:pointer;}
+  .rt-btn:active{transform:scale(0.94);}
+  .rt-x{background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;min-width:40px;min-height:40px;}
+
+  #boostBtn{width:100%;padding:14px;border:none;border-radius:13px;font-weight:800;font-size:0.98rem;
+    background:var(--accent2);color:#0b0f12;cursor:pointer;margin-top:12px;}
+  #boostBtn.playing{background:var(--danger);color:#fff;}
+  .routine-card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);}
   .btn-sm{padding:11px;font-size:0.9rem;border-radius:11px;}
   .btn-row{display:flex;gap:8px;}
   .btn-row .btn{flex:1;}
@@ -195,6 +221,7 @@
 <div class="screen active" id="home">
   <header class="top">
     <div class="grow"><h1>🐾 Blind Dog Soundboard</h1></div>
+    <button class="icon-only" id="clickerBtn" aria-label="Clicker (reward marker)" title="Clicker">👆</button>
     <button class="icon-only" id="settingsBtn" aria-label="Settings">⚙️</button>
   </header>
   <p class="sub">Tap a command to open it, or press ▶ to play right away. Point your speaker where you want your dog to come, then let the sound guide him.</p>
@@ -209,8 +236,33 @@
   </div>
   <div class="banner" id="hearingSummary" style="display:none;"></div>
 
+  <div class="callout" id="insightBanner" style="display:none;margin-bottom:14px;">
+    <span id="insightText"></span>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-ghost btn-sm" id="insightDismiss">Got it</button>
+    </div>
+  </div>
+
+  <div id="routine-wrap" style="display:none;">
+    <h2 style="margin:6px 0 8px;">Routines</h2>
+    <div id="routine-list"></div>
+  </div>
+
+  <h2 id="commandsHeading" style="display:none;margin:6px 0 8px;">Commands</h2>
   <div id="tone-list"></div>
+
+  <div class="btn-row" style="margin-top:4px;">
+    <button class="btn btn-ghost" id="newRoutineBtn" style="flex:1;">+ Routine</button>
+  </div>
   <button class="fab" id="newToneBtn">+ New Command</button>
+</div>
+
+<!-- iter 1: response toast (screen-independent) -->
+<div id="respToast" role="status" aria-live="polite">
+  <span class="rt-text">Did <b id="respName"></b> respond?</span>
+  <button class="rt-btn" id="respYes" aria-label="Yes, responded">👍</button>
+  <button class="rt-btn" id="respNo" aria-label="No response">👎</button>
+  <button class="rt-x" id="respDismiss" aria-label="Dismiss">✕</button>
 </div>
 
 <!-- ============ EDITOR ============ -->
@@ -313,8 +365,43 @@
   </header>
   <p class="sub" id="playerDesc"></p>
   <button class="big-toggle" id="playerToggle">▶ Start</button>
+  <button id="boostBtn">🚀 He’s far / not responding</button>
   <div class="status" id="playerStatus" role="status" aria-live="polite"></div>
   <div class="callout" id="playerModeNote"></div>
+</div>
+
+<!-- ============ ROUTINE EDITOR ============ -->
+<div class="screen" id="routineEditor">
+  <header class="top">
+    <button class="icon-only back" id="routineBack" aria-label="Back">←</button>
+    <h1 id="routineTitle" style="margin:0;">New Routine</h1>
+  </header>
+  <div class="panel">
+    <label for="routineName">Name</label>
+    <div style="height:8px;"></div>
+    <input type="text" id="routineName" placeholder="e.g. Walk prep, Bedtime">
+  </div>
+  <div class="panel">
+    <label>Steps (played in order)</label>
+    <div style="height:10px;"></div>
+    <div id="routineSteps"></div>
+    <button class="add-step" id="addRoutineStepBtn">+ Add Step</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-ghost" id="deleteRoutineBtn" style="display:none;">Delete</button>
+    <button class="btn btn-primary" id="saveRoutineBtn" style="flex:2;">Save Routine</button>
+  </div>
+</div>
+
+<!-- ============ ROUTINE RUNNER ============ -->
+<div class="screen" id="routinePlayer">
+  <header class="top">
+    <button class="icon-only back" id="routinePlayerBack" aria-label="Back">←</button>
+    <h1 id="routinePlayerTitle" style="margin:0;">Routine</h1>
+  </header>
+  <button class="big-toggle" id="routineToggle">▶ Start routine</button>
+  <div class="status" id="routineStatus" role="status" aria-live="polite"></div>
+  <div class="callout">Plays each command in order for its set time, then moves on. Tap the clicker (👆) or 👍/👎 as your dog responds.</div>
 </div>
 
 <!-- ============ SETTINGS (menu) ============ -->
@@ -542,6 +629,12 @@ const STORAGE_KEY = 'dogSoundboard.customTones';
 const SETTINGS_KEY = 'dogSoundboard.settings';
 const OVERRIDES_KEY = 'dogSoundboard.defaultOverrides';
 const HEARING_KEY = 'dogSoundboard.hearing';
+const LOG_KEY = 'dogSoundboard.log';           // iter 1: response log
+const ROUTINES_KEY = 'dogSoundboard.routines'; // iter 3: command chains
+function loadLog(){ try{ const r = localStorage.getItem(LOG_KEY); return r ? JSON.parse(r) : []; }catch(e){ return []; } }
+function saveLog(){ try{ localStorage.setItem(LOG_KEY, JSON.stringify(responseLog)); }catch(e){} }
+function loadRoutines(){ try{ const r = localStorage.getItem(ROUTINES_KEY); return r ? JSON.parse(r) : []; }catch(e){ return []; } }
+function saveRoutines(){ try{ localStorage.setItem(ROUTINES_KEY, JSON.stringify(routines)); }catch(e){} }
 
 function loadCustomTones(){
   try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }
@@ -572,6 +665,9 @@ let customTones = loadCustomTones();
 let defaultOverrides = loadOverrides();
 let settings = loadSettings();
 let hearingProfile = loadHearing();
+let responseLog = loadLog();
+let routines = loadRoutines();
+let insightDismissed = false;   // per-session
 let editingId = null;
 let editingIsDefault = false;
 
@@ -583,7 +679,19 @@ let activeTone = null;
 let wakeLock = null;
 
 const sched = { events:[], pointer:0, loopStart:0, repeat:true, nextTime:0,
-                volume:0.8, intervalId:null, stopTimer:null, statusTimers:[] };
+                volume:0.8, boostVol:1, boostGap:1, intervalId:null, stopTimer:null, statusTimers:[] };
+// iter 4: live urgency. Clamped so the "help" multiplier can never become a penalty
+// (memory: [gamedesign] clamp a helper multiplier). Final gain never exceeds 1.0;
+// tempo never collapses below 45% of the authored gap.
+function setBoost(level){ // 0=off,1,2
+  const vol = [1, 1.25, 1.5][level] || 1;
+  const gap = [1, 0.72, 0.5][level] || 1;
+  sched.boostVol = vol; sched.boostGap = Math.max(0.45, gap);
+  const b = document.getElementById('boostBtn');
+  if(b){ b.textContent = level ? `🚀 Urgency ${level}× (tap to cycle)` : '🚀 He’s far / not responding'; b.classList.toggle('playing', !!level); }
+  boostLevel = level;
+}
+let boostLevel = 0;
 
 let masterGain = null;
 function ensureCtx(){
@@ -755,9 +863,10 @@ function schedulerTick(){
   while(sched.nextTime < audioCtx.currentTime + LOOKAHEAD){
     const ev = sched.events[sched.pointer];
     if(!ev) { stopPlayback(); return; }
-    ev.hits.forEach(h => playHit(h, sched.nextTime, sched.volume));
+    const vol = Math.min(1, sched.volume * sched.boostVol);   // clamped: never clips past full scale
+    ev.hits.forEach(h => playHit(h, sched.nextTime, vol));
     scheduleStatus(ev.label, sched.nextTime);
-    sched.nextTime += ev.gap / 1000;
+    sched.nextTime += (ev.gap / 1000) * sched.boostGap;
     sched.pointer++;
     if(sched.pointer >= sched.events.length){
       if(sched.repeat){
@@ -773,10 +882,15 @@ function schedulerTick(){
   }
 }
 
+let startLock = false;   // iter 5: guard against a double-fired start edge
 function startPlayback(tone){
   if(!tone) return;
-  ensureCtx();
+  if(startLock) return;
+  startLock = true; setTimeout(() => { startLock = false; }, 120);
+  try{ ensureCtx(); }
+  catch(e){ showAudioError(e); return; }   // iter 5: fail loud, don't die silently
   stopPlayback(true); // reset without re-rendering flicker
+  setBoost(0);        // iter 4: every command starts at normal urgency
   const pat = buildPattern(tone, settings.outputMode);
   sched.events = pat.events; sched.loopStart = pat.loopStart; sched.repeat = pat.repeat;
   sched.pointer = 0;
@@ -806,6 +920,7 @@ function stopPlayback(silent){
   if(st){ st.textContent = ''; st.classList.remove('active'); }
   if(!silent) syncHomePlayButtons();
   syncPreviewBtn();
+  setBoost(0);   // iter 4: reset urgency UI when playback ends
 }
 
 /* ---------- Wake lock (keeps playing when pocketed) ---------- */
@@ -818,6 +933,23 @@ document.addEventListener('visibilitychange', () => {
   if(playing && document.visibilityState === 'visible' && !wakeLock) requestWakeLock();
 });
 
+/* ---------- iter 5: fail loud + dispose global audio resources ---------- */
+// memory [process][observability]: surface the failure instead of a silent no-op.
+function showAudioError(e){
+  startLock = false; playing = false;
+  const st = document.getElementById('playerStatus');
+  if(st){ st.textContent = '⚠ Audio could not start — tap again, or check your speaker/volume.'; st.classList.add('active'); }
+  try{ console.error('audio start failed', e); }catch(_){}
+}
+// memory [phaser][vite][tooling]: a global resource (AudioContext/scheduler/wake-lock)
+// needs an explicit dispose hook. Release everything when the page is going away.
+function disposeAudio(){
+  try{ stopPlayback(); }catch(e){}
+  try{ if(audioCtx){ audioCtx.close(); } }catch(e){}
+  audioCtx = null; masterGain = null; noiseBuffer = null;
+}
+window.addEventListener('pagehide', disposeAudio);
+
 /* ---------- Screen navigation ---------- */
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -827,7 +959,7 @@ function showScreen(id){
   if(h){ h.setAttribute('tabindex','-1'); h.focus({preventScroll:true}); }
   window.scrollTo(0,0);
 }
-function goHome(){ stopPlayback(); renderHome(); showScreen('home'); }
+function goHome(){ stopRoutine(); stopPlayback(); hideRespToast(); renderHome(); showScreen('home'); }
 
 /* ---------- Descriptions ---------- */
 function describeTone(tone){
@@ -861,6 +993,8 @@ function renderHome(){
   document.getElementById('modePillText').textContent =
     settings.outputMode === 'directional' ? 'Stereo (dual channel)' : 'Mono (single speaker)';
   renderHearingHome();
+  renderInsight();
+  renderRoutinesHome();
 
   const list = document.getElementById('tone-list');
   list.innerHTML = '';
@@ -948,6 +1082,7 @@ function toneLoops(tone){ return tone.type === 'guide' || tone.repeat !== false;
 function homePlay(tone){
   if(playing && activeTone && activeTone.id === tone.id){ stopPlayback(); return; }
   startPlayback(tone);
+  showRespToast(tone);   // iter 1: offer to log the dog's response
   renderHearingHome();  // the training card can appear right after this first play
 }
 
@@ -967,12 +1102,13 @@ function openPlayer(tone, autoStart){
       : '<b>Mono mode:</b> plays from one speaker your dog walks toward.';
   }
   showScreen('player');
-  if(autoStart) startPlayback(tone);
+  if(autoStart){ startPlayback(tone); showRespToast(tone); }
 }
 
 document.getElementById('playerBack').onclick = goHome;
 document.getElementById('playerToggle').onclick = () => {
-  if(playing) stopPlayback(); else startPlayback(activeTone);
+  if(playing) stopPlayback();
+  else { startPlayback(activeTone); showRespToast(activeTone); }
 };
 
 /* ---------- Editor ---------- */
@@ -1525,6 +1661,211 @@ document.getElementById('hcApply').onclick = () => {
   defaultOverrides['default-come-here'] = cur;
   saveOverrides();
   document.getElementById('hcApply').textContent = `✓ Come Here set to ~${cur.leftFreq}/${cur.rightFreq} Hz`;
+};
+
+/* ============================================================
+   iter 1 — clicker + response logging (writer at the play event)
+   ============================================================ */
+function playClick(){
+  try{ ensureCtx(); }catch(e){ showAudioError(e); return; }
+  playHit({kind:'noise', freq:3000, dur:20, pan:0}, audioCtx.currentTime + 0.02, 0.9);
+}
+document.getElementById('clickerBtn').onclick = playClick;
+
+function showRespToast(tone){
+  if(!tone || !tone.id) return;
+  const el = document.getElementById('respToast');
+  el.dataset.id = tone.id;
+  document.getElementById('respName').textContent = tone.name;
+  el.classList.add('show');
+}
+function hideRespToast(){ document.getElementById('respToast').classList.remove('show'); }
+function logResponse(ok){
+  const el = document.getElementById('respToast');
+  const id = el.dataset.id;
+  if(id){ responseLog.push({ id, ts: Date.now(), ok: !!ok }); saveLog(); }
+  hideRespToast();
+  renderInsight();
+}
+document.getElementById('respYes').onclick = () => logResponse(true);
+document.getElementById('respNo').onclick = () => logResponse(false);
+document.getElementById('respDismiss').onclick = hideRespToast;
+
+/* ============================================================
+   iter 2 — longitudinal "what's working" insight (honest nulls)
+   ideas: Signal longitudinal-insight (null unless confident, cite >=3),
+   trust-as-character (a miss is a learning signal, never blame), offered-not-pushed.
+   ============================================================ */
+function computeInsight(){
+  if(!responseLog.length) return null;
+  const since = Date.now() - 30 * 24 * 3600 * 1000;
+  const byId = {};
+  responseLog.forEach(e => {
+    if(e.ts < since) return;
+    (byId[e.id] = byId[e.id] || { ok:0, total:0 });
+    byId[e.id].total++; if(e.ok) byId[e.id].ok++;
+  });
+  const rows = Object.keys(byId).filter(id => byId[id].total >= 3).map(id => {
+    const t = findToneById(id), c = byId[id];
+    return { name: t ? t.name : id, ok:c.ok, total:c.total, rate: c.ok / c.total };
+  });
+  if(!rows.length) return null;                 // not enough signal yet → say nothing
+  rows.sort((a,b) => a.rate - b.rate);
+  const worst = rows[0];
+  if(worst.rate < 0.6){
+    return `“${worst.name}”: only ${worst.ok}/${worst.total} responses lately. Try the hearing check or a lower pitch — he may not be hearing it clearly.`;
+  }
+  const best = rows[rows.length - 1];
+  return `“${best.name}” is landing — ${best.ok}/${best.total} responses lately. Keep pairing it with a reward.`;
+}
+function renderInsight(){
+  const banner = document.getElementById('insightBanner');
+  const txt = computeInsight();
+  if(txt && !insightDismissed){ document.getElementById('insightText').textContent = txt; banner.style.display = 'block'; }
+  else banner.style.display = 'none';
+}
+document.getElementById('insightDismiss').onclick = () => { insightDismissed = true; renderInsight(); };
+
+/* ============================================================
+   iter 3 — routines (command chains)
+   ============================================================ */
+function allCommands(){ return [...effectiveDefaults(), ...customTones]; }
+function findToneById(id){ return allCommands().find(t => t.id === id) || null; }
+
+function renderRoutinesHome(){
+  const wrap = document.getElementById('routine-wrap');
+  const list = document.getElementById('routine-list');
+  list.innerHTML = '';
+  wrap.style.display = routines.length ? 'block' : 'none';
+  document.getElementById('commandsHeading').style.display = routines.length ? 'block' : 'none';
+  routines.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'card routine-card';
+    const info = document.createElement('div');
+    info.className = 'info'; info.setAttribute('role','button'); info.setAttribute('tabindex','0');
+    const names = r.steps.map(s => { const t = findToneById(s.toneId); return t ? t.name : '?'; }).join(' → ');
+    info.innerHTML = `<div class="name">🔁 ${escapeHtml(r.name)}</div><div class="desc">${escapeHtml(names || 'empty')}</div>`;
+    info.onclick = () => openRoutinePlayer(r);
+    info.onkeydown = e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openRoutinePlayer(r); } };
+    const actions = document.createElement('div'); actions.className = 'actions';
+    const play = document.createElement('button');
+    play.className = 'icon-btn play-btn'; play.textContent = '▶';
+    play.setAttribute('aria-label','Play routine ' + r.name);
+    play.onclick = () => openRoutinePlayer(r, true);
+    const edit = document.createElement('button');
+    edit.className = 'icon-btn'; edit.textContent = '✎';
+    edit.setAttribute('aria-label','Edit routine ' + r.name);
+    edit.onclick = () => openRoutineEditor(r);
+    actions.appendChild(play); actions.appendChild(edit);
+    card.appendChild(info); card.appendChild(actions);
+    list.appendChild(card);
+  });
+}
+
+let editingRoutineId = null, routineDraft = [];
+function openRoutineEditor(r){
+  stopPlayback();
+  editingRoutineId = r ? r.id : null;
+  document.getElementById('routineTitle').textContent = r ? 'Edit Routine' : 'New Routine';
+  document.getElementById('routineName').value = r ? r.name : '';
+  document.getElementById('deleteRoutineBtn').style.display = r ? 'block' : 'none';
+  routineDraft = r ? r.steps.map(s => ({...s})) : [];
+  renderRoutineSteps();
+  showScreen('routineEditor');
+}
+function renderRoutineSteps(){
+  const list = document.getElementById('routineSteps'); list.innerHTML = '';
+  const cmds = allCommands();
+  routineDraft.forEach((step, i) => {
+    const opts = cmds.map(c => `<option value="${c.id}" ${c.id===step.toneId?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
+    const row = document.createElement('div'); row.className = 'step-row';
+    row.innerHTML = `<span class="step-num">${i+1}</span>
+      <select class="rs-tone" data-idx="${i}" style="flex:1;">${opts}</select>
+      <input type="number" class="rs-dur" data-idx="${i}" min="1" max="30" value="${Math.round((step.durationMs||3000)/1000)}" style="width:52px;" aria-label="seconds"><span style="color:var(--muted);font-size:.8rem;">s</span>
+      <button class="rm" data-idx="${i}" aria-label="Remove step ${i+1}">✕</button>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.rs-tone').forEach(el => el.onchange = () => { routineDraft[el.dataset.idx].toneId = el.value; });
+  list.querySelectorAll('.rs-dur').forEach(el => el.oninput = () => { routineDraft[el.dataset.idx].durationMs = Math.max(1, parseInt(el.value||'3',10)) * 1000; });
+  list.querySelectorAll('.rm').forEach(el => el.onclick = () => { routineDraft.splice(el.dataset.idx, 1); renderRoutineSteps(); });
+}
+document.getElementById('addRoutineStepBtn').onclick = () => {
+  const cmds = allCommands();
+  const last = routineDraft[routineDraft.length - 1];
+  routineDraft.push({ toneId: last ? last.toneId : (cmds[0] && cmds[0].id), durationMs: 3000, gapMs: 600 });
+  renderRoutineSteps();
+};
+document.getElementById('newRoutineBtn').onclick = () => openRoutineEditor(null);
+document.getElementById('routineBack').onclick = goHome;
+document.getElementById('saveRoutineBtn').onclick = () => {
+  const name = document.getElementById('routineName').value.trim();
+  if(!name){ alert('Give this routine a name.'); return; }
+  if(!routineDraft.length){ alert('Add at least one step.'); return; }
+  const routine = { id: editingRoutineId || ('routine-' + Date.now()), name,
+                    steps: routineDraft.map(s => ({ toneId:s.toneId, durationMs:s.durationMs||3000, gapMs: s.gapMs!=null?s.gapMs:600 })) };
+  const idx = routines.findIndex(r => r.id === routine.id);
+  if(idx >= 0) routines[idx] = routine; else routines.push(routine);
+  saveRoutines();
+  goHome();
+};
+document.getElementById('deleteRoutineBtn').onclick = () => {
+  if(!editingRoutineId) return;
+  if(!confirm('Delete this routine?')) return;
+  routines = routines.filter(r => r.id !== editingRoutineId);
+  saveRoutines(); goHome();
+};
+
+// Runner
+let routineActive = false, routineIdx = 0, routineTimer = null, activeRoutine = null;
+function openRoutinePlayer(r, autoStart){
+  stopRoutine(); stopPlayback();
+  activeRoutine = r;
+  document.getElementById('routinePlayerTitle').textContent = r.name;
+  document.getElementById('routineStatus').textContent = '';
+  document.getElementById('routineToggle').textContent = '▶ Start routine';
+  document.getElementById('routineToggle').classList.remove('playing');
+  showScreen('routinePlayer');
+  if(autoStart) runRoutine(r);
+}
+function runRoutine(r){
+  activeRoutine = r; routineIdx = 0; routineActive = true;
+  const t = document.getElementById('routineToggle');
+  t.textContent = '■ Stop routine'; t.classList.add('playing');
+  routineStep();
+}
+function routineStep(){
+  if(!routineActive) return;
+  const step = activeRoutine.steps[routineIdx];
+  if(!step){ finishRoutine(); return; }
+  const tone = findToneById(step.toneId);
+  const st = document.getElementById('routineStatus');
+  if(tone){ startPlayback(tone); st.textContent = `${routineIdx+1}/${activeRoutine.steps.length} · ${tone.name}`; }
+  else { st.textContent = `${routineIdx+1}/${activeRoutine.steps.length} · (missing command)`; }
+  routineTimer = setTimeout(() => {
+    stopPlayback();
+    routineIdx++;
+    routineTimer = setTimeout(routineStep, step.gapMs != null ? step.gapMs : 600);
+  }, step.durationMs || 3000);
+}
+function finishRoutine(){
+  routineActive = false; clearTimeout(routineTimer); routineTimer = null; stopPlayback();
+  const t = document.getElementById('routineToggle'); if(t){ t.textContent = '▶ Start routine'; t.classList.remove('playing'); }
+  const st = document.getElementById('routineStatus'); if(st) st.textContent = '✓ Done';
+}
+function stopRoutine(){
+  if(!routineActive){ return; }
+  routineActive = false; clearTimeout(routineTimer); routineTimer = null; stopPlayback();
+  const t = document.getElementById('routineToggle'); if(t){ t.textContent = '▶ Start routine'; t.classList.remove('playing'); }
+}
+document.getElementById('routineToggle').onclick = () => { if(routineActive) stopRoutine(); else runRoutine(activeRoutine); };
+document.getElementById('routinePlayerBack').onclick = () => { stopRoutine(); goHome(); };
+
+/* ============================================================
+   iter 4 — live urgency boost (clamped in setBoost)
+   ============================================================ */
+document.getElementById('boostBtn').onclick = () => {
+  if(!playing) return;                 // only meaningful during playback
+  setBoost((boostLevel + 1) % 3);
 };
 
 /* ---------- Boot ---------- */
