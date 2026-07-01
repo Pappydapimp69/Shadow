@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#14181c">
+<title>Blind Dog Soundboard</title>
+<style>
+  :root{
+    --bg:#12161a;
+    --panel:#1f262d;
+    --panel2:#28313a;
+    --accent:#57c2b7;
+    --accent2:#e6ad63;
+    --danger:#e0605c;
+    --text:#f2f5f7;
+    --muted:#9aa7b0;
+    --line:#39434c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .screen{
+    display:none;
+    max-width:520px;
+    margin:0 auto;
+    padding:18px 16px 96px;
+  }
+  .screen.active{display:block;}
+
+  h1{font-size:1.3rem;font-weight:800;margin:4px 0 2px;}
+  h2{font-size:1rem;font-weight:700;margin:0 0 8px;}
+  p.sub{color:var(--muted);font-size:0.86rem;margin:0 0 16px;line-height:1.4;}
+
+  header.top{
+    display:flex;align-items:center;gap:10px;margin-bottom:8px;
+  }
+  header.top .grow{flex:1;min-width:0;}
+  .icon-only{
+    background:none;border:none;color:var(--text);
+    font-size:1.35rem;padding:8px 10px;cursor:pointer;border-radius:10px;
+    min-width:44px;min-height:44px;
+  }
+  .icon-only:hover{background:var(--panel);}
+  .icon-only:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+
+  .mode-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--line);
+    color:var(--muted);font-size:0.74rem;font-weight:600;
+    padding:5px 10px;border-radius:999px;margin-bottom:14px;cursor:pointer;
+  }
+  .mode-pill b{color:var(--accent);}
+  .mode-pill:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+
+  .card{
+    background:var(--panel);border-radius:16px;padding:14px 14px;
+    margin-bottom:12px;display:flex;align-items:center;gap:10px;
+    touch-action:pan-y;   /* let a drag that starts on a tile scroll the page */
+  }
+  .card .info{flex:1;min-width:0;cursor:pointer;padding:4px 2px;touch-action:pan-y;}
+  .card .name{font-weight:700;font-size:1.05rem;margin-bottom:3px;}
+  .card .desc{color:var(--muted);font-size:0.76rem;line-height:1.35;}
+  .card .actions{display:flex;gap:6px;align-items:center;}
+  .icon-btn{
+    background:var(--panel2);border:none;color:var(--text);
+    width:44px;height:44px;border-radius:12px;font-size:1.05rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn:active{transform:scale(0.94);}
+  .icon-btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+  .play-btn{background:var(--accent);color:#08110f;font-weight:800;}
+  .play-btn.playing{background:var(--danger);color:#fff;}
+  .icon-btn.danger{color:var(--danger);}
+
+  .fab{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    width:calc(100% - 32px);max-width:488px;background:var(--accent);color:#08110f;
+    border:none;border-radius:16px;padding:17px;font-size:1.02rem;font-weight:800;cursor:pointer;
+  }
+  .fab:active{transform:translateX(-50%) scale(0.98);}
+  .fab:focus-visible{outline:3px solid #fff;outline-offset:2px;}
+
+  .panel{background:var(--panel);border-radius:16px;padding:18px;margin-bottom:14px;}
+  .panel h2 .hint{font-weight:500;color:var(--muted);font-size:0.78rem;}
+  .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .row:last-child{margin-bottom:0;}
+  label{font-size:0.9rem;color:var(--muted);}
+  .val{font-variant-numeric:tabular-nums;color:var(--text);font-weight:700;
+    font-size:0.9rem;min-width:58px;text-align:right;}
+  input[type=range]{flex:1;margin:0 12px;accent-color:var(--accent);height:28px;}
+  input[type=text]{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    padding:13px;border-radius:10px;font-size:1rem;
+  }
+  select.field{
+    background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    padding:11px;border-radius:10px;font-size:0.95rem;width:100%;
+  }
+  textarea{
+    width:100%;min-height:90px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);padding:11px;border-radius:10px;font-size:0.85rem;
+    font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;
+  }
+  .side-label{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--text);}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block;}
+  .dot.left{background:var(--accent);}
+  .dot.right{background:var(--accent2);}
+
+  .type-toggle{display:flex;gap:6px;margin-bottom:14px;}
+  .type-toggle button{
+    flex:1;padding:12px 6px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);font-weight:700;cursor:pointer;font-size:0.86rem;
+  }
+  .type-toggle button.active{background:var(--accent);color:#08110f;border-color:var(--accent);}
+  .type-toggle button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+
+  .step-row{display:flex;align-items:center;gap:8px;background:var(--panel2);
+    padding:10px 12px;border-radius:10px;margin-bottom:8px;}
+  .step-row .step-num{color:var(--muted);font-size:0.8rem;width:18px;}
+  .step-row input[type=number]{width:74px;background:#171d22;border:1px solid var(--line);
+    color:var(--text);padding:9px;border-radius:8px;font-size:0.9rem;}
+  .step-row select{background:#171d22;border:1px solid var(--line);color:var(--text);
+    padding:9px;border-radius:8px;font-size:0.9rem;}
+  .step-row .rm{margin-left:auto;background:none;border:none;color:var(--danger);
+    font-size:1.2rem;cursor:pointer;min-width:40px;min-height:40px;}
+  .add-step{width:100%;padding:12px;border-radius:10px;border:1px dashed var(--line);
+    background:none;color:var(--muted);font-weight:700;cursor:pointer;margin-bottom:4px;}
+
+  .btn{width:100%;padding:15px;border:none;border-radius:13px;font-weight:800;font-size:1rem;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:#08110f;}
+  .btn-primary:focus-visible{outline:3px solid #fff;outline-offset:2px;}
+  .btn-ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line);}
+  #previewBtn.playing{background:var(--danger);color:#fff;border-color:var(--danger);}
+  .btn-sm{padding:11px;font-size:0.9rem;border-radius:11px;}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn{flex:1;}
+
+  .status{margin-top:16px;font-size:1rem;color:var(--muted);min-height:24px;text-align:center;font-weight:600;}
+  .status.active{color:var(--accent);}
+
+  .big-toggle{width:100%;padding:24px;border:none;border-radius:18px;font-size:1.25rem;
+    font-weight:800;background:var(--accent);color:#08110f;cursor:pointer;margin-top:6px;}
+  .big-toggle.playing{background:var(--danger);color:#fff;}
+  .big-toggle:focus-visible{outline:3px solid #fff;outline-offset:2px;}
+
+  .note{margin-top:18px;font-size:0.76rem;color:var(--muted);line-height:1.5;}
+  .callout{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--accent2);
+    border-radius:10px;padding:12px 14px;font-size:0.82rem;color:var(--text);line-height:1.5;margin-top:10px;}
+  .callout b{color:var(--accent2);}
+  .banner{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;font-size:0.84rem;color:var(--text);margin-bottom:12px;}
+  .banner .lbl{color:var(--muted);font-size:0.74rem;text-transform:uppercase;letter-spacing:0.04em;}
+  ul.tips{margin:8px 0 0;padding-left:20px;font-size:0.82rem;color:var(--text);line-height:1.55;}
+  ul.tips li{margin-bottom:6px;}
+
+  .menu{display:flex;flex-direction:column;gap:10px;}
+  .menu-item{
+    display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px 16px;cursor:pointer;color:var(--text);touch-action:pan-y;
+  }
+  .menu-item:hover{background:var(--panel2);}
+  .menu-item:active{transform:scale(0.995);}
+  .menu-item:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+  .mi-icon{font-size:1.5rem;width:30px;text-align:center;flex:none;}
+  .mi-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .mi-title{font-weight:700;font-size:1.02rem;}
+  .mi-sub{color:var(--muted);font-size:0.78rem;line-height:1.3;}
+  .mi-chev{color:var(--muted);font-size:1.5rem;flex:none;}
+
+  .freq-hint{font-size:0.74rem;margin:-6px 0 12px;min-height:14px;line-height:1.3;}
+  .freq-hint.ok{color:var(--accent);}
+  .freq-hint.warn{color:var(--accent2);}
+
+  .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+    .icon-btn:active,.fab:active{transform:none;}
+    .fab{transform:translateX(-50%);}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<div class="screen active" id="home">
+  <header class="top">
+    <div class="grow"><h1>🐾 Blind Dog Soundboard</h1></div>
+    <button class="icon-only" id="settingsBtn" aria-label="Settings">⚙️</button>
+  </header>
+  <p class="sub">Tap a command to open it, or press ▶ to play right away. Point your speaker where you want your dog to come, then let the sound guide him.</p>
+  <button class="mode-pill" id="modePill" aria-label="Change output mode">Output: <b id="modePillText">Beacon</b> · tap to change</button>
+
+  <div class="callout" id="hearingReminder" style="display:none;margin-top:0;margin-bottom:14px;">
+    <b>Can your dog hear the tones?</b> Older or partly-deaf dogs hear some pitches better than others. There’s an optional one-time hearing check that finds which pitches yours responds to.
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-primary btn-sm" id="reminderTry">Try the hearing check</button>
+      <button class="btn btn-ghost btn-sm" id="reminderDismiss">Not now</button>
+    </div>
+  </div>
+  <div class="banner" id="hearingSummary" style="display:none;"></div>
+
+  <div id="tone-list"></div>
+  <button class="fab" id="newToneBtn">+ New Command</button>
+</div>
+
+<!-- ============ EDITOR ============ -->
+<div class="screen" id="editor">
+  <header class="top">
+    <button class="icon-only back" id="editorBack" aria-label="Back">←</button>
+    <h1 id="editorTitle" style="margin:0;">New Command</h1>
+  </header>
+
+  <div class="panel">
+    <label for="toneName">Name</label>
+    <div style="height:8px;"></div>
+    <input type="text" id="toneName" placeholder="e.g. Come here, Dinner, Bed">
+  </div>
+
+  <div class="type-toggle" role="tablist" aria-label="Command type">
+    <button id="typeGuideBtn" role="tab">Come-here</button>
+    <button id="typeAltBtn" class="active" role="tab">Alternating</button>
+    <button id="typeSeqBtn" role="tab">Sequence</button>
+  </div>
+
+  <!-- GUIDE -->
+  <div id="guideFields" class="panel" style="display:none;">
+    <h2>Attention burst <span class="hint">(the "look at me" whistle)</span></h2>
+    <div class="row"><label>Chirp start (Hz)</label><span class="val" id="g_attnF0Val">1200</span></div>
+    <div class="row"><input type="range" id="g_attnF0" min="300" max="3000" step="10" value="1200"></div>
+    <div class="row"><label>Chirp end (Hz)</label><span class="val" id="g_attnF1Val">1900</span></div>
+    <div class="row"><input type="range" id="g_attnF1" min="300" max="3500" step="10" value="1900"></div>
+    <div class="row"><label>Repeats</label><span class="val" id="g_attnRepsVal">3</span></div>
+    <div class="row"><input type="range" id="g_attnReps" min="1" max="6" step="1" value="3"></div>
+    <h2 style="margin-top:6px;">Guide loop <span class="hint">(alternates until you stop)</span></h2>
+    <div class="row"><div class="side-label"><span class="dot left"></span>Left tone (Hz)</div><span class="val" id="g_leftFreqVal">600</span></div>
+    <div class="row"><input type="range" id="g_leftFreq" min="150" max="3000" step="10" value="600"></div>
+    <div class="freq-hint" id="g_leftFreqHint"></div>
+    <div class="row"><div class="side-label"><span class="dot right"></span>Right tone (Hz)</div><span class="val" id="g_rightFreqVal">900</span></div>
+    <div class="row"><input type="range" id="g_rightFreq" min="150" max="3000" step="10" value="900"></div>
+    <div class="freq-hint" id="g_rightFreqHint"></div>
+    <div class="row"><label>Tone length (ms)</label><span class="val" id="g_toneLenVal">150</span></div>
+    <div class="row"><input type="range" id="g_toneLen" min="30" max="800" step="10" value="150"></div>
+    <div class="row"><label>Pause between (ms)</label><span class="val" id="g_pauseVal">380</span></div>
+    <div class="row"><input type="range" id="g_pause" min="0" max="2000" step="10" value="380"></div>
+  </div>
+
+  <!-- ALTERNATING -->
+  <div id="altFields" class="panel">
+    <div class="row"><div class="side-label"><span class="dot left"></span>Left tone (Hz)</div><span class="val" id="a_leftFreqVal">600</span></div>
+    <div class="row"><input type="range" id="a_leftFreq" min="150" max="3000" step="10" value="600"></div>
+    <div class="freq-hint" id="a_leftFreqHint"></div>
+    <div class="row"><div class="side-label"><span class="dot right"></span>Right tone (Hz)</div><span class="val" id="a_rightFreqVal">900</span></div>
+    <div class="row"><input type="range" id="a_rightFreq" min="150" max="3000" step="10" value="900"></div>
+    <div class="freq-hint" id="a_rightFreqHint"></div>
+    <div class="row"><label>Tone length (ms)</label><span class="val" id="a_toneLenVal">150</span></div>
+    <div class="row"><input type="range" id="a_toneLen" min="30" max="800" step="10" value="150"></div>
+    <div class="row"><label>Pause between tones (ms)</label><span class="val" id="a_pauseVal">400</span></div>
+    <div class="row"><input type="range" id="a_pause" min="0" max="2000" step="10" value="400"></div>
+  </div>
+
+  <!-- SEQUENCE -->
+  <div id="seqFields" class="panel" style="display:none;">
+    <label>Steps (in order)</label>
+    <div style="height:10px;"></div>
+    <div id="stepsList"></div>
+    <button class="add-step" id="addStepBtn">+ Add Step</button>
+    <div style="height:10px;"></div>
+    <div class="row"><label>Tone length (ms)</label><span class="val" id="s_toneLenVal">150</span></div>
+    <div class="row"><input type="range" id="s_toneLen" min="30" max="800" step="10" value="150"></div>
+    <div class="row"><label>Delay between steps (ms)</label><span class="val" id="s_stepDelayVal">200</span></div>
+    <div class="row"><input type="range" id="s_stepDelay" min="0" max="2000" step="10" value="200"></div>
+    <div class="row"><label>Loop delay (ms)</label><span class="val" id="s_loopDelayVal">3000</span></div>
+    <div class="row"><input type="range" id="s_loopDelay" min="0" max="8000" step="50" value="3000"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="margin-bottom:14px;">
+      <label for="wave">Sound character</label>
+      <select class="field" id="wave" style="width:auto;min-width:150px;">
+        <option value="slap">Slap (natural, recommended)</option>
+        <option value="sine">Beep — smooth</option>
+        <option value="triangle">Beep — full</option>
+        <option value="square">Beep — buzzy</option>
+      </select>
+    </div>
+    <div class="row" id="repeatRow">
+      <label for="repeatChk">Repeat until stopped</label>
+      <input type="checkbox" id="repeatChk" style="width:22px;height:22px;accent-color:var(--accent);">
+    </div>
+    <div class="row"><label>Volume</label><span class="val" id="volVal">80%</span></div>
+    <div class="row"><input type="range" id="vol" min="0" max="100" step="1" value="80"></div>
+  </div>
+
+  <button class="btn btn-ghost" id="previewBtn" style="margin-bottom:10px;">▶ Preview</button>
+  <button class="btn btn-primary" id="saveToneBtn">Save Command</button>
+</div>
+
+<!-- ============ PLAYER ============ -->
+<div class="screen" id="player">
+  <header class="top">
+    <button class="icon-only back" id="playerBack" aria-label="Back">←</button>
+    <h1 id="playerTitle" style="margin:0;">Command</h1>
+  </header>
+  <p class="sub" id="playerDesc"></p>
+  <button class="big-toggle" id="playerToggle">▶ Start</button>
+  <div class="status" id="playerStatus" role="status" aria-live="polite"></div>
+  <div class="callout" id="playerModeNote"></div>
+</div>
+
+<!-- ============ SETTINGS (menu) ============ -->
+<div class="screen" id="settings">
+  <header class="top">
+    <button class="icon-only back" id="settingsBack" aria-label="Back to soundboard">←</button>
+    <h1 style="margin:0;">Settings</h1>
+  </header>
+  <div class="menu">
+    <button class="menu-item" id="menuHome">
+      <span class="mi-icon">🏠</span>
+      <span class="mi-text"><span class="mi-title">Home Commands</span><span class="mi-sub" id="menuHomeSub"></span></span>
+      <span class="mi-chev">›</span>
+    </button>
+    <button class="menu-item" id="menuSpeaker">
+      <span class="mi-icon">🔊</span>
+      <span class="mi-text"><span class="mi-title">Speaker &amp; Output</span><span class="mi-sub" id="menuSpeakerSub"></span></span>
+      <span class="mi-chev">›</span>
+    </button>
+    <button class="menu-item" id="menuHearing">
+      <span class="mi-icon">🐕</span>
+      <span class="mi-text"><span class="mi-title">Hearing Check</span><span class="mi-sub" id="menuHearingSub"></span></span>
+      <span class="mi-chev">›</span>
+    </button>
+    <button class="menu-item" id="menuShare">
+      <span class="mi-icon">🔗</span>
+      <span class="mi-text"><span class="mi-title">Share Commands</span><span class="mi-sub">Sync sounds to another phone</span></span>
+      <span class="mi-chev">›</span>
+    </button>
+    <button class="menu-item" id="menuHelp">
+      <span class="mi-icon">❓</span>
+      <span class="mi-text"><span class="mi-title">How to Use &amp; Safety</span><span class="mi-sub">Tips for guiding &amp; training</span></span>
+      <span class="mi-chev">›</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ▸ Home Commands ============ -->
+<div class="screen" id="setHome">
+  <header class="top">
+    <button class="icon-only back" id="homeBack" aria-label="Back to settings">←</button>
+    <h1 style="margin:0;">Home Commands</h1>
+  </header>
+  <p class="sub">Choose which built-in commands appear on your soundboard. Your own custom commands always stay on the home screen.</p>
+  <div id="homeManageList"></div>
+</div>
+
+<!-- ============ SETTINGS ▸ Speaker & Output ============ -->
+<div class="screen" id="setSpeaker">
+  <header class="top">
+    <button class="icon-only back" id="speakerBack" aria-label="Back to settings">←</button>
+    <h1 style="margin:0;">Speaker &amp; Output</h1>
+  </header>
+
+  <div class="panel">
+    <h2>Output mode</h2>
+    <div class="type-toggle" style="margin:2px 0 12px;">
+      <button id="modeDirBtn" class="active">Stereo (dual)</button>
+      <button id="modeBeaconBtn">Mono (single)</button>
+    </div>
+    <p class="sub" style="margin:0;" id="modeExplain"></p>
+    <div class="callout">Default is <b>stereo</b>: left/right cues split across two speakers. If your device only has one speaker, it automatically mixes both channels together — nothing is lost, you just don’t get the left/right separation.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Directional test</h2>
+    <div class="banner" id="outputBanner"><span class="lbl">Detected output</span><br><span id="outputDetail">Tap “Run the test” below.</span></div>
+    <button class="btn btn-ghost btn-sm" id="runTestBtn">🔊 Run the directional test</button>
+    <div class="status" id="testStatus" role="status" aria-live="polite"></div>
+    <div id="testAnswer" style="display:none;">
+      <p class="sub" style="text-align:center;margin:4px 0 10px;">Did the sound clearly move from one side to the other?</p>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" id="testYes">Yes, it moved</button>
+        <button class="btn btn-ghost btn-sm" id="testNo">No, same spot</button>
+      </div>
+    </div>
+    <div class="callout"><b>Why test?</b> Phones and browsers can’t reliably tell whether your speaker is truly stereo. This quick check confirms it on <i>your</i> setup: real left/right guiding needs <b>two speakers set apart</b>. A single speaker still works well as a beacon your dog walks toward.</div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ▸ Share ============ -->
+<div class="screen" id="setShare">
+  <header class="top">
+    <button class="icon-only back" id="shareBack" aria-label="Back to settings">←</button>
+    <h1 style="margin:0;">Share Commands</h1>
+  </header>
+  <div class="panel">
+    <p class="sub" style="margin:0 0 14px;">Keep your sounds identical for everyone who guides your dog — no account needed. Sharing includes your custom commands and any edits to the built-in ones.</p>
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="btn btn-ghost btn-sm" id="exportBtn">Copy share code</button>
+      <button class="btn btn-ghost btn-sm" id="downloadBtn">Download file</button>
+    </div>
+    <textarea id="shareBox" placeholder="Paste a share code here to import, or press “Copy share code” to export…"></textarea>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-ghost btn-sm" id="importBtn">Import from code</button>
+      <label class="btn btn-ghost btn-sm" style="text-align:center;cursor:pointer;">Import file
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+      </label>
+    </div>
+    <div class="status" id="shareStatus" role="status" aria-live="polite" style="min-height:18px;"></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ▸ Help ============ -->
+<div class="screen" id="setHelp">
+  <header class="top">
+    <button class="icon-only back" id="helpBack" aria-label="Back to settings">←</button>
+    <h1 style="margin:0;">How to Use</h1>
+  </header>
+  <div class="panel">
+    <ul class="tips">
+      <li><b>Place the speaker</b> where you want your dog to go — usually next to you. He learns to walk toward the sound.</li>
+      <li><b>Run the directional test</b> (Speaker &amp; Output) so you know whether your speaker can do left/right.</li>
+      <li><b>Come-here</b> plays an attention chirp first (replaces your whistle) then a steady guide loop.</li>
+      <li><b>Train each sound.</b> These tones don’t mean anything to a dog until you pair them with the action and a reward. The app just keeps every sound identical between you and your partner.</li>
+      <li>Playback holds a wake lock so it keeps going in your pocket.</li>
+    </ul>
+    <div class="callout"><b>Hearing safety:</b> keep the volume moderate and don’t hold a very high-pitched tone close to your dog’s ears for long — canine hearing is far more sensitive than ours.</div>
+  </div>
+</div>
+
+<!-- ============ TRAINING / HEARING CHECK ============ -->
+<div class="screen" id="training">
+  <header class="top">
+    <button class="icon-only back" id="trainingBack" aria-label="Back">←</button>
+    <h1 style="margin:0;">Hearing Check</h1>
+  </header>
+
+  <!-- Intro -->
+  <div id="hcIntro">
+    <p class="sub">This plays a series of pitches from low to high. For each one, watch your dog — ears perking, head turn, looking toward the sound all count as a reaction. It takes about a minute and you only need to do it once.</p>
+    <div class="callout" style="margin-bottom:16px;">Do it in a quiet room, with the speaker you normally use, at a normal volume. If your dog is asleep or distracted, try again later.</div>
+    <button class="btn btn-primary" id="hcStartBtn">Start</button>
+  </div>
+
+  <!-- Stepper -->
+  <div id="hcStep" style="display:none;">
+    <div class="banner" style="text-align:center;"><span class="lbl">Testing pitch</span><br>
+      <span id="hcProgress" style="font-size:1.4rem;font-weight:800;color:var(--accent);"></span></div>
+    <button class="big-toggle" id="hcReplayBtn">🔊 Play again</button>
+    <p class="sub" style="text-align:center;margin:16px 0 8px;">Did your dog react at all?</p>
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="btn btn-primary" id="hcYes">Reacted 🐕</button>
+      <button class="btn btn-ghost" id="hcNo">No response</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="hcSkip">Not sure / skip</button>
+  </div>
+
+  <!-- Results -->
+  <div id="hcDone" style="display:none;">
+    <div class="banner" id="hcSummary" style="margin-bottom:14px;"></div>
+    <div id="hcApplyWrap" style="display:none;">
+      <button class="btn btn-primary" id="hcApply">Tune “Come Here” to this pitch</button>
+      <p class="sub" style="text-align:center;margin:8px 0 16px;">Sets the guide loop around the pitch your dog heard best. You can still edit it anytime.</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" id="hcRedo">Redo check</button>
+      <button class="btn btn-ghost btn-sm" id="hcFinish">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Blind Dog Soundboard — single-file app. No network, no build.
+   ============================================================ */
+
+/* ---------- Default command library ---------- */
+const DEFAULT_TONES = [
+  {
+    id:'default-come-here', name:'Come Here', type:'guide', default:true,
+    wave:'slap', repeat:true,
+    attn:{f0:1200, f1:1900, dur:220, reps:3, gap:150},
+    leftFreq:600, rightFreq:900, toneLen:150, pause:380, vol:85
+  },
+  {
+    id:'default-beacon', name:'Beacon (homing loop)', type:'sequence', default:true,
+    wave:'slap', repeat:true,
+    steps:[
+      {freq:1600,channel:'right'},{freq:1450,channel:'left'},{freq:1300,channel:'left'},
+      {freq:1150,channel:'right'},{freq:1000,channel:'left'},{freq:850,channel:'right'},
+      {freq:700,channel:'left'}
+    ],
+    toneLen:150, stepDelay:200, loopDelay:3000, vol:80
+  },
+  {
+    id:'default-sit', name:'Sit', type:'sequence', default:true,
+    wave:'slap', repeat:false,
+    steps:[{freq:520,channel:'left'},{freq:340,channel:'right'}],
+    toneLen:190, stepDelay:90, loopDelay:2000, vol:80
+  },
+  {
+    id:'default-stay', name:'Stay', type:'sequence', default:true,
+    wave:'sine', repeat:false,
+    steps:[{freq:300,channel:'left'}],
+    toneLen:650, stepDelay:200, loopDelay:2000, vol:78
+  },
+  {
+    id:'default-dinner', name:'Dinner', type:'sequence', default:true,
+    wave:'slap', repeat:false,
+    steps:[{freq:720,channel:'left'},{freq:960,channel:'right'},{freq:1180,channel:'left'}],
+    toneLen:140, stepDelay:80, loopDelay:2000, vol:82
+  },
+  {
+    id:'default-no', name:'No / Stop', type:'sequence', default:true,
+    wave:'slap', repeat:false,
+    steps:[{freq:220,channel:'left'},{freq:220,channel:'right'}],
+    toneLen:130, stepDelay:80, loopDelay:2000, vol:80
+  },
+  {
+    id:'default-good', name:'Good Boy', type:'sequence', default:true,
+    wave:'slap', repeat:false,
+    steps:[{freq:900,channel:'left'},{freq:1200,channel:'right'},{freq:1550,channel:'left'}],
+    toneLen:95, stepDelay:60, loopDelay:2000, vol:82
+  },
+  {
+    id:'default-bed', name:'Bed / Place', type:'sequence', default:true,
+    wave:'slap', repeat:false,
+    steps:[{freq:700,channel:'left'},{freq:550,channel:'right'},{freq:400,channel:'left'}],
+    toneLen:210, stepDelay:120, loopDelay:2000, vol:80
+  }
+];
+
+const STORAGE_KEY = 'dogSoundboard.customTones';
+const SETTINGS_KEY = 'dogSoundboard.settings';
+const OVERRIDES_KEY = 'dogSoundboard.defaultOverrides';
+const HEARING_KEY = 'dogSoundboard.hearing';
+
+function loadCustomTones(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }
+  catch(e){ return []; }
+}
+function saveCustomTones(list){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }catch(e){}
+}
+function loadOverrides(){
+  try{ const raw = localStorage.getItem(OVERRIDES_KEY); return raw ? JSON.parse(raw) : {}; }
+  catch(e){ return {}; }
+}
+function saveOverrides(){ try{ localStorage.setItem(OVERRIDES_KEY, JSON.stringify(defaultOverrides)); }catch(e){} }
+const DEFAULT_HOME = ['default-come-here','default-beacon'];  // shown on home out of the box
+function loadSettings(){
+  try{ const raw = localStorage.getItem(SETTINGS_KEY); const s = raw ? JSON.parse(raw) : {};
+       return { outputMode: s.outputMode === 'beacon' ? 'beacon' : 'directional',   // dual-channel by default
+                playCount: s.playCount || 0,
+                hearingReminderDismissed: !!s.hearingReminderDismissed,
+                homeDefaults: Array.isArray(s.homeDefaults) ? s.homeDefaults : DEFAULT_HOME.slice() }; }
+  catch(e){ return { outputMode:'directional', playCount:0, hearingReminderDismissed:false, homeDefaults:DEFAULT_HOME.slice() }; }
+}
+function saveSettings(){ try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){} }
+function loadHearing(){ try{ const r = localStorage.getItem(HEARING_KEY); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+function saveHearing(){ try{ localStorage.setItem(HEARING_KEY, JSON.stringify(hearingProfile)); }catch(e){} }
+
+let customTones = loadCustomTones();
+let defaultOverrides = loadOverrides();
+let settings = loadSettings();
+let hearingProfile = loadHearing();
+let editingId = null;
+let editingIsDefault = false;
+
+/* ---------- Audio engine ---------- */
+let audioCtx = null;
+let noiseBuffer = null;
+let playing = false;
+let activeTone = null;
+let wakeLock = null;
+
+const sched = { events:[], pointer:0, loopStart:0, repeat:true, nextTime:0,
+                volume:0.8, intervalId:null, stopTimer:null, statusTimers:[] };
+
+let masterGain = null;
+function ensureCtx(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Master chain: everything → gentle compressor → out, so layered slaps never clip.
+    const comp = audioCtx.createDynamicsCompressor();
+    comp.threshold.value = -10; comp.knee.value = 24; comp.ratio.value = 3;
+    comp.attack.value = 0.002; comp.release.value = 0.12;
+    masterGain = audioCtx.createGain(); masterGain.gain.value = 0.9;
+    masterGain.connect(comp).connect(audioCtx.destination);
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function audioOut(){ return masterGain || audioCtx.destination; }
+function getNoiseBuffer(){
+  if(!noiseBuffer){
+    const len = Math.floor(audioCtx.sampleRate * 0.5);
+    noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const d = noiseBuffer.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = Math.random()*2 - 1;
+  }
+  return noiseBuffer;
+}
+
+// A percussive "slap": a broadband noise smack + a few decaying harmonic partials
+// with a slight downward pitch bend (like a struck surface). The caller only ever
+// supplies a centre frequency — all the harmonic layering is internal.
+function playSlap(freq, when, volume, pan){
+  const out = audioCtx.createGain();
+  out.gain.value = volume;
+  const panner = audioCtx.createStereoPanner();
+  panner.pan.value = pan || 0;
+  out.connect(panner).connect(audioOut());
+
+  // 1) Noise transient — the "smack" (very fast attack + decay)
+  const nsrc = audioCtx.createBufferSource();
+  nsrc.buffer = getNoiseBuffer();
+  const nbp = audioCtx.createBiquadFilter();
+  nbp.type = 'bandpass'; nbp.frequency.value = Math.min(Math.max(freq * 2.2, 350), 9000); nbp.Q.value = 0.6;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(0.0001, when);
+  ng.gain.exponentialRampToValueAtTime(0.9, when + 0.003);
+  ng.gain.exponentialRampToValueAtTime(0.0008, when + 0.055);
+  nsrc.connect(nbp).connect(ng).connect(out);
+  nsrc.start(when); nsrc.stop(when + 0.14);
+
+  // 2) Harmonic body — fundamental + overtones, each decaying, slight pitch drop
+  const partials = [
+    {mult:1.0,  peak:0.9,  decay:0.14},
+    {mult:2.0,  peak:0.42, decay:0.10},
+    {mult:3.01, peak:0.24, decay:0.075},
+    {mult:4.72, peak:0.12, decay:0.05}
+  ];
+  partials.forEach(p => {
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    const f = freq * p.mult;
+    osc.frequency.setValueAtTime(f * 1.06, when);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(f * 0.9, 30), when + Math.min(p.decay, 0.09));
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(p.peak, when + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0008, when + p.decay);
+    osc.connect(g).connect(out);
+    osc.start(when); osc.stop(when + p.decay + 0.03);
+  });
+}
+
+// hit: {kind:'slap'|'tone'|'chirp'|'noise', wave, freq, freq2, dur(ms), pan(-1..1)}
+function playHit(hit, when, volume){
+  if(hit.kind === 'slap'){ playSlap(hit.freq, when, volume, hit.pan || 0); return; }
+
+  const dur = hit.dur/1000;
+  const g = audioCtx.createGain();
+  const panner = audioCtx.createStereoPanner();
+  panner.pan.value = hit.pan || 0;
+  g.connect(panner).connect(audioOut());
+
+  // click-free envelope with sharp-ish onset
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(volume, when + 0.008);
+  g.gain.setValueAtTime(volume, when + Math.max(dur - 0.015, 0.009));
+  g.gain.linearRampToValueAtTime(0, when + dur);
+
+  if(hit.kind === 'noise'){
+    const src = audioCtx.createBufferSource();
+    src.buffer = getNoiseBuffer();
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = hit.freq || 1500; bp.Q.value = 1.2;
+    src.connect(bp).connect(g);
+    src.start(when); src.stop(when + dur + 0.03);
+  } else {
+    const osc = audioCtx.createOscillator();
+    osc.type = hit.wave || 'sine';
+    if(hit.kind === 'chirp'){
+      osc.frequency.setValueAtTime(hit.freq, when);
+      osc.frequency.linearRampToValueAtTime(hit.freq2, when + dur);
+    } else {
+      osc.frequency.setValueAtTime(hit.freq, when);
+    }
+    osc.connect(g);
+    osc.start(when); osc.stop(when + dur + 0.03);
+  }
+}
+
+// Build the event stream for a tone given the current output mode.
+// event: {hits:[hit,...], gap(ms), label}
+function buildPattern(tone, mode){
+  const voice = tone.wave || 'slap';           // 'slap' or an oscillator wave name
+  const isSlap = voice === 'slap';
+  const directional = mode === 'directional';
+  const sidePan = ch => directional ? (ch === 'left' ? -1 : ch === 'right' ? 1 : 0) : 0;
+  const toneHit = (freq, ch) => isSlap
+    ? {kind:'slap', freq, dur: tone.toneLen, pan: sidePan(ch)}
+    : {kind:'tone', wave: voice, freq, dur: tone.toneLen, pan: sidePan(ch)};
+  const sideLabel = (ch, txt) => directional ? (ch==='left' ? '◀ '+txt : txt+' ▶') : '● '+txt;
+
+  let events = [], loopStart = 0, repeat = tone.repeat !== false;
+
+  if(tone.type === 'alternating'){
+    const g = tone.toneLen + tone.pause;
+    events = [
+      {hits:[toneHit(tone.leftFreq,'left')],  gap:g, label:sideLabel('left','Left')},
+      {hits:[toneHit(tone.rightFreq,'right')], gap:g, label:sideLabel('right','Right')}
+    ];
+  } else if(tone.type === 'guide'){
+    const a = tone.attn || {};
+    const f0 = a.f0 ?? 1200, f1 = a.f1 ?? 1900, adur = a.dur ?? 220, reps = a.reps ?? 3, agap = a.gap ?? 150;
+    const intro = [];
+    for(let i=0;i<reps;i++){
+      intro.push({hits:[{kind:'chirp', wave:'sine', freq:f0, freq2:f1, dur:adur, pan:0}],
+                  gap: adur + agap, label:'🔔 Attention…'});
+    }
+    const g = tone.toneLen + tone.pause;
+    const loop = [
+      {hits:[toneHit(tone.leftFreq,'left')],  gap:g, label:sideLabel('left','Guiding')},
+      {hits:[toneHit(tone.rightFreq,'right')], gap:g, label:sideLabel('right','Guiding')}
+    ];
+    events = intro.concat(loop);
+    loopStart = intro.length;
+    repeat = true;
+  } else { // sequence
+    const n = tone.steps.length;
+    events = tone.steps.map((s,i) => {
+      const last = i === n-1;
+      // Non-looping sequences stop right after the last tone (no trailing loop-delay silence).
+      const tail = repeat ? tone.loopDelay : 0;
+      return {hits:[toneHit(s.freq, s.channel)],
+              gap: tone.toneLen + (last ? tail : tone.stepDelay),
+              label:`Step ${i+1}/${n}`};
+    });
+  }
+  return {events, loopStart, repeat};
+}
+
+function clearStatusTimers(){ sched.statusTimers.forEach(clearTimeout); sched.statusTimers = []; }
+
+function scheduleStatus(label, when){
+  const el = document.getElementById('playerStatus');
+  const delay = Math.max(0, (when - audioCtx.currentTime) * 1000);
+  sched.statusTimers.push(setTimeout(() => { if(playing) el.textContent = label; }, delay));
+}
+
+function schedulerTick(){
+  if(!playing) return;
+  const LOOKAHEAD = 0.15;
+  while(sched.nextTime < audioCtx.currentTime + LOOKAHEAD){
+    const ev = sched.events[sched.pointer];
+    if(!ev) { stopPlayback(); return; }
+    ev.hits.forEach(h => playHit(h, sched.nextTime, sched.volume));
+    scheduleStatus(ev.label, sched.nextTime);
+    sched.nextTime += ev.gap / 1000;
+    sched.pointer++;
+    if(sched.pointer >= sched.events.length){
+      if(sched.repeat){
+        sched.pointer = sched.loopStart;
+      } else {
+        // finite pattern: stop after the last tone finishes
+        clearInterval(sched.intervalId); sched.intervalId = null;
+        const delay = Math.max(0, (sched.nextTime - audioCtx.currentTime) * 1000) + 60;
+        sched.stopTimer = setTimeout(() => stopPlayback(), delay);
+        return;
+      }
+    }
+  }
+}
+
+function startPlayback(tone){
+  if(!tone) return;
+  ensureCtx();
+  stopPlayback(true); // reset without re-rendering flicker
+  const pat = buildPattern(tone, settings.outputMode);
+  sched.events = pat.events; sched.loopStart = pat.loopStart; sched.repeat = pat.repeat;
+  sched.pointer = 0;
+  sched.volume = (tone.vol !== undefined ? tone.vol : 80) / 100;
+  sched.nextTime = audioCtx.currentTime + 0.12;
+  playing = true; activeTone = tone;
+  settings.playCount = (settings.playCount || 0) + 1; saveSettings();
+  requestWakeLock();
+  const t = document.getElementById('playerToggle');
+  t.textContent = '■ Stop'; t.classList.add('playing');
+  document.getElementById('playerStatus').classList.add('active');
+  sched.intervalId = setInterval(schedulerTick, 25);
+  schedulerTick();
+  syncHomePlayButtons();
+  syncPreviewBtn();
+}
+
+function stopPlayback(silent){
+  playing = false;
+  clearInterval(sched.intervalId); sched.intervalId = null;
+  clearTimeout(sched.stopTimer); sched.stopTimer = null;
+  clearStatusTimers();
+  releaseWakeLock();
+  const t = document.getElementById('playerToggle');
+  if(t){ t.textContent = '▶ Start'; t.classList.remove('playing'); }
+  const st = document.getElementById('playerStatus');
+  if(st){ st.textContent = ''; st.classList.remove('active'); }
+  if(!silent) syncHomePlayButtons();
+  syncPreviewBtn();
+}
+
+/* ---------- Wake lock (keeps playing when pocketed) ---------- */
+async function requestWakeLock(){
+  try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); } }
+  catch(e){ /* not supported / denied — playback still works */ }
+}
+function releaseWakeLock(){ try{ if(wakeLock) wakeLock.release(); }catch(e){} wakeLock = null; }
+document.addEventListener('visibilitychange', () => {
+  if(playing && document.visibilityState === 'visible' && !wakeLock) requestWakeLock();
+});
+
+/* ---------- Screen navigation ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  const h = el.querySelector('h1');
+  if(h){ h.setAttribute('tabindex','-1'); h.focus({preventScroll:true}); }
+  window.scrollTo(0,0);
+}
+function goHome(){ stopPlayback(); renderHome(); showScreen('home'); }
+
+/* ---------- Descriptions ---------- */
+function describeTone(tone){
+  if(tone.type === 'alternating'){
+    return `Alternating · L ${tone.leftFreq}Hz / R ${tone.rightFreq}Hz · ${tone.toneLen}ms tones, ${tone.pause}ms pause · loops`;
+  } else if(tone.type === 'guide'){
+    const a = tone.attn || {};
+    return `Come-here · attention chirp ${a.f0||1200}→${a.f1||1900}Hz ×${a.reps||3}, then alternating guide loop`;
+  } else {
+    return `Sequence · ${tone.steps.length} tones · ${tone.repeat === false ? 'plays once' : 'loops'}`;
+  }
+}
+
+// Defaults with any saved edits merged on top (id/default always preserved).
+function effectiveDefaults(){
+  return DEFAULT_TONES.map(t => {
+    const o = defaultOverrides[t.id];
+    return o ? {...t, ...o, id:t.id, default:true} : t;
+  });
+}
+function isDefaultCustomized(id){ return Object.prototype.hasOwnProperty.call(defaultOverrides, id); }
+function isDefaultOnHome(id){ return settings.homeDefaults.includes(id); }
+
+// Only the default cards the user has chosen to show, plus all their custom commands.
+function allTones(){
+  return [...effectiveDefaults().filter(t => isDefaultOnHome(t.id)), ...customTones];
+}
+
+/* ---------- Home ---------- */
+function renderHome(){
+  document.getElementById('modePillText').textContent =
+    settings.outputMode === 'directional' ? 'Stereo (dual channel)' : 'Mono (single speaker)';
+  renderHearingHome();
+
+  const list = document.getElementById('tone-list');
+  list.innerHTML = '';
+  allTones().forEach(tone => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.setAttribute('role','button'); info.setAttribute('tabindex','0');
+    info.setAttribute('aria-label', 'Open ' + tone.name);
+    const edited = tone.default && isDefaultCustomized(tone.id) ? ' · ✎ edited' : '';
+    info.innerHTML = `<div class="name">${escapeHtml(tone.name)}</div><div class="desc">${escapeHtml(describeTone(tone) + edited)}</div>`;
+    info.onclick = () => toneLoops(tone) ? openPlayer(tone, false) : homePlay(tone);
+    info.onkeydown = e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toneLoops(tone) ? openPlayer(tone,false) : homePlay(tone); } };
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    const playBtn = document.createElement('button');
+    playBtn.className = 'icon-btn play-btn';
+    playBtn.dataset.id = tone.id;
+    const isActive = playing && activeTone && activeTone.id === tone.id;
+    playBtn.textContent = isActive ? '■' : '▶';
+    playBtn.setAttribute('aria-label', (isActive ? 'Stop ' : 'Play ') + tone.name);
+    if(isActive) playBtn.classList.add('playing');
+    playBtn.onclick = () => toneLoops(tone) ? openPlayer(tone, true) : homePlay(tone);
+    actions.appendChild(playBtn);
+
+    // Every command (default or custom) can be edited.
+    const editBtn = document.createElement('button');
+    editBtn.className = 'icon-btn'; editBtn.textContent = '✎';
+    editBtn.setAttribute('aria-label','Edit ' + tone.name);
+    editBtn.onclick = () => openEditor(tone);
+    actions.appendChild(editBtn);
+
+    if(!tone.default){
+      const delBtn = document.createElement('button');
+      delBtn.className = 'icon-btn danger'; delBtn.textContent = '🗑';
+      delBtn.setAttribute('aria-label','Delete ' + tone.name);
+      delBtn.onclick = () => deleteTone(tone.id);
+      actions.appendChild(delBtn);
+    } else if(isDefaultCustomized(tone.id)){
+      // Customized default → offer a reset to the original sound.
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'icon-btn'; resetBtn.textContent = '↺';
+      resetBtn.title = 'Reset to original';
+      resetBtn.setAttribute('aria-label','Reset ' + tone.name + ' to original');
+      resetBtn.onclick = () => resetDefault(tone.id);
+      actions.appendChild(resetBtn);
+    }
+    card.appendChild(info); card.appendChild(actions);
+    list.appendChild(card);
+  });
+}
+
+function syncHomePlayButtons(){
+  document.querySelectorAll('.play-btn').forEach(btn => {
+    const isActive = playing && activeTone && activeTone.id === btn.dataset.id;
+    btn.textContent = isActive ? '■' : '▶';
+    btn.classList.toggle('playing', isActive);
+  });
+}
+
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+function deleteTone(id){
+  if(!confirm('Delete this command?')) return;
+  customTones = customTones.filter(t => t.id !== id);
+  saveCustomTones(customTones);
+  renderHome();
+}
+
+function resetDefault(id){
+  if(!confirm('Reset this sound back to its original?')) return;
+  delete defaultOverrides[id];
+  saveOverrides();
+  renderHome();
+}
+
+/* ---------- Player ---------- */
+// Looping sounds (guide, or repeat-until-stopped) need a stop control, so they
+// open the full player screen. One-shot sounds just play inline from the home list.
+function toneLoops(tone){ return tone.type === 'guide' || tone.repeat !== false; }
+function homePlay(tone){
+  if(playing && activeTone && activeTone.id === tone.id){ stopPlayback(); return; }
+  startPlayback(tone);
+  renderHearingHome();  // the training card can appear right after this first play
+}
+
+function openPlayer(tone, autoStart){
+  stopPlayback();
+  activeTone = tone;
+  document.getElementById('playerTitle').textContent = tone.name;
+  document.getElementById('playerDesc').textContent = describeTone(tone);
+  const note = document.getElementById('playerModeNote');
+  const usesSides = tone.type === 'alternating' || tone.type === 'guide' ||
+                    (tone.type === 'sequence' && tone.steps.some((s,i,arr)=>i>0 && s.channel!==arr[0].channel));
+  if(settings.outputMode === 'directional'){
+    note.innerHTML = '<b>Stereo mode:</b> left/right play on separate channels. With two speakers set apart, your dog gets true direction; with one speaker they’re mixed together automatically.';
+  } else {
+    note.innerHTML = usesSides
+      ? '<b>Mono mode:</b> this command has left/right cues, but they play from a single spot. Your dog homes in on the speaker itself. Switch to Stereo in Settings if you use two speakers.'
+      : '<b>Mono mode:</b> plays from one speaker your dog walks toward.';
+  }
+  showScreen('player');
+  if(autoStart) startPlayback(tone);
+}
+
+document.getElementById('playerBack').onclick = goHome;
+document.getElementById('playerToggle').onclick = () => {
+  if(playing) stopPlayback(); else startPlayback(activeTone);
+};
+
+/* ---------- Editor ---------- */
+const stepsList = document.getElementById('stepsList');
+let editingSteps = [];
+
+function renderSteps(){
+  stepsList.innerHTML = '';
+  editingSteps.forEach((step, i) => {
+    const row = document.createElement('div');
+    row.className = 'step-row';
+    row.innerHTML = `
+      <span class="step-num">${i+1}</span>
+      <input type="number" min="150" max="4000" step="10" value="${step.freq}" data-idx="${i}" class="step-freq" style="flex:1;" aria-label="Step ${i+1} frequency">
+      <select data-idx="${i}" class="step-channel" aria-label="Step ${i+1} channel">
+        <option value="left" ${step.channel==='left'?'selected':''}>Left</option>
+        <option value="right" ${step.channel==='right'?'selected':''}>Right</option>
+      </select>
+      <button class="rm" data-idx="${i}" aria-label="Remove step ${i+1}">✕</button>`;
+    stepsList.appendChild(row);
+  });
+  stepsList.querySelectorAll('.step-freq').forEach(el => {
+    el.oninput = () => { editingSteps[el.dataset.idx].freq = parseInt(el.value || '0', 10); };
+  });
+  stepsList.querySelectorAll('.step-channel').forEach(el => {
+    el.onchange = () => { editingSteps[el.dataset.idx].channel = el.value; };
+  });
+  stepsList.querySelectorAll('.rm').forEach(el => {
+    el.onclick = () => { editingSteps.splice(el.dataset.idx, 1); renderSteps(); };
+  });
+}
+
+document.getElementById('addStepBtn').onclick = () => {
+  const last = editingSteps[editingSteps.length - 1];
+  editingSteps.push({freq: last ? last.freq : 800, channel: last && last.channel === 'left' ? 'right' : 'left'});
+  renderSteps();
+};
+
+let currentType = 'alternating';
+document.getElementById('typeGuideBtn').onclick = () => setType('guide');
+document.getElementById('typeAltBtn').onclick = () => setType('alternating');
+document.getElementById('typeSeqBtn').onclick = () => setType('sequence');
+function setType(type){
+  currentType = type;
+  document.getElementById('typeGuideBtn').classList.toggle('active', type === 'guide');
+  document.getElementById('typeAltBtn').classList.toggle('active', type === 'alternating');
+  document.getElementById('typeSeqBtn').classList.toggle('active', type === 'sequence');
+  document.getElementById('guideFields').style.display = type === 'guide' ? 'block' : 'none';
+  document.getElementById('altFields').style.display = type === 'alternating' ? 'block' : 'none';
+  document.getElementById('seqFields').style.display = type === 'sequence' ? 'block' : 'none';
+  // Guide always loops → hide the repeat toggle for it
+  document.getElementById('repeatRow').style.display = type === 'guide' ? 'none' : 'flex';
+}
+
+function bindSlider(rangeId, labelId, suffix){
+  const r = document.getElementById(rangeId);
+  const l = document.getElementById(labelId);
+  r.oninput = () => { l.textContent = r.value + (suffix || ''); };
+}
+['a_leftFreq','a_rightFreq','a_toneLen','a_pause',
+ 's_toneLen','s_stepDelay','s_loopDelay',
+ 'g_attnF0','g_attnF1','g_attnReps','g_leftFreq','g_rightFreq','g_toneLen','g_pause']
+  .forEach(id => bindSlider(id, id + 'Val'));
+document.getElementById('vol').oninput = function(){
+  document.getElementById('volVal').textContent = this.value + '%';
+};
+
+// Live "can your dog hear this pitch?" hints, driven by the hearing check.
+const FREQ_HINT_IDS = ['a_leftFreq','a_rightFreq','g_leftFreq','g_rightFreq'];
+function updateFreqHint(id){
+  const hint = document.getElementById(id + 'Hint');
+  if(!hint) return;
+  if(!hearingProfile || !hearingProfile.any){ hint.textContent = ''; hint.className = 'freq-hint'; return; }
+  const v = parseInt(document.getElementById(id).value, 10);
+  if(v >= hearingProfile.low && v <= hearingProfile.high){
+    hint.textContent = '✓ within the pitch range your dog responded to';
+    hint.className = 'freq-hint ok';
+  } else {
+    hint.textContent = `⚠ outside your dog’s tested range (${hearingProfile.low}–${hearingProfile.high} Hz)`;
+    hint.className = 'freq-hint warn';
+  }
+}
+function updateAllFreqHints(){ FREQ_HINT_IDS.forEach(updateFreqHint); }
+FREQ_HINT_IDS.forEach(id => document.getElementById(id).addEventListener('input', () => updateFreqHint(id)));
+
+function setVal(id, v){ document.getElementById(id).value = v; const l = document.getElementById(id+'Val'); if(l) l.textContent = v; }
+
+function openEditor(tone){
+  stopPlayback();   // don't carry playback into the editor; resets the Preview button
+  editingId = tone ? tone.id : null;
+  editingIsDefault = !!(tone && tone.default);
+  document.getElementById('editorTitle').textContent = tone ? 'Edit Command' : 'New Command';
+  document.getElementById('toneName').value = tone ? tone.name : '';
+  document.getElementById('wave').value = (tone && tone.wave) || 'slap';
+  document.getElementById('repeatChk').checked = tone ? (tone.repeat !== false) : true;
+
+  // reset step defaults
+  editingSteps = (tone && tone.type === 'sequence')
+    ? tone.steps.map(s => ({...s}))
+    : [{freq:800,channel:'left'},{freq:800,channel:'right'}];
+
+  if(tone && tone.type === 'guide'){
+    setType('guide');
+    const a = tone.attn || {};
+    setVal('g_attnF0', a.f0 ?? 1200); setVal('g_attnF1', a.f1 ?? 1900); setVal('g_attnReps', a.reps ?? 3);
+    setVal('g_leftFreq', tone.leftFreq ?? 600); setVal('g_rightFreq', tone.rightFreq ?? 900);
+    setVal('g_toneLen', tone.toneLen ?? 150); setVal('g_pause', tone.pause ?? 380);
+  } else if(tone && tone.type === 'sequence'){
+    setType('sequence');
+    setVal('s_toneLen', tone.toneLen); setVal('s_stepDelay', tone.stepDelay); setVal('s_loopDelay', tone.loopDelay);
+  } else {
+    setType('alternating');
+    if(tone){
+      setVal('a_leftFreq', tone.leftFreq); setVal('a_rightFreq', tone.rightFreq);
+      setVal('a_toneLen', tone.toneLen); setVal('a_pause', tone.pause);
+    } else {
+      setVal('a_leftFreq',600); setVal('a_rightFreq',900); setVal('a_toneLen',150); setVal('a_pause',400);
+    }
+  }
+  // ensure guide defaults exist even when editing another type
+  if(!tone || tone.type !== 'guide'){
+    setVal('g_attnF0',1200); setVal('g_attnF1',1900); setVal('g_attnReps',3);
+    setVal('g_leftFreq',600); setVal('g_rightFreq',900); setVal('g_toneLen',150); setVal('g_pause',380);
+  }
+  if(!tone || tone.type !== 'sequence'){ setVal('s_toneLen',150); setVal('s_stepDelay',200); setVal('s_loopDelay',3000); }
+
+  renderSteps();
+  const vol = tone ? tone.vol : 80;
+  setVal('vol', vol); document.getElementById('volVal').textContent = vol + '%';
+  updateAllFreqHints();
+  showScreen('editor');
+}
+
+document.getElementById('newToneBtn').onclick = () => openEditor(null);
+document.getElementById('editorBack').onclick = goHome;
+
+function num(id){ return parseInt(document.getElementById(id).value, 10); }
+
+// Build a tone object from the current editor fields (all live edits). Returns null
+// if the sequence has no steps. Shared by Save and Preview so they never diverge.
+function buildEditorTone(){
+  const vol = num('vol');
+  const wave = document.getElementById('wave').value;
+  const repeat = document.getElementById('repeatChk').checked;
+  const base = { id:'preview', name:'Preview', default:false, wave, vol };
+  if(currentType === 'guide'){
+    return { ...base, type:'guide', repeat:true,
+      attn:{f0:num('g_attnF0'), f1:num('g_attnF1'), dur:220, reps:num('g_attnReps'), gap:150},
+      leftFreq:num('g_leftFreq'), rightFreq:num('g_rightFreq'),
+      toneLen:num('g_toneLen'), pause:num('g_pause') };
+  } else if(currentType === 'alternating'){
+    return { ...base, type:'alternating', repeat,
+      leftFreq:num('a_leftFreq'), rightFreq:num('a_rightFreq'),
+      toneLen:num('a_toneLen'), pause:num('a_pause') };
+  } else {
+    if(editingSteps.length < 1) return null;
+    return { ...base, type:'sequence', repeat,
+      steps: editingSteps.map(s => ({freq:s.freq, channel:s.channel})),
+      toneLen:num('s_toneLen'), stepDelay:num('s_stepDelay'), loopDelay:num('s_loopDelay') };
+  }
+}
+
+document.getElementById('saveToneBtn').onclick = () => {
+  const name = document.getElementById('toneName').value.trim();
+  if(!name){ alert('Please give this command a name.'); return; }
+  const tone = buildEditorTone();
+  if(!tone){ alert('Add at least one step.'); return; }
+  stopPlayback();
+  tone.name = name;
+  tone.id = editingId || ('custom-' + Date.now());
+  tone.default = editingIsDefault;
+
+  if(editingIsDefault){
+    // Store as an override of the built-in sound (keeps it in the Default section, resettable).
+    defaultOverrides[tone.id] = tone;
+    saveOverrides();
+  } else {
+    const idx = customTones.findIndex(t => t.id === tone.id);
+    if(idx >= 0) customTones[idx] = tone; else customTones.push(tone);
+    saveCustomTones(customTones);
+  }
+  goHome();
+};
+
+// Preview: play the command exactly as currently configured. Toggles stop while playing.
+function syncPreviewBtn(){
+  const b = document.getElementById('previewBtn');
+  if(!b) return;
+  b.textContent = playing ? '■ Stop preview' : '▶ Preview';
+  b.classList.toggle('playing', playing);
+}
+document.getElementById('previewBtn').onclick = () => {
+  if(playing){ stopPlayback(); return; }
+  const tone = buildEditorTone();
+  if(!tone){ alert('Add at least one step to preview.'); return; }
+  startPlayback(tone);
+};
+
+/* ---------- Settings: menu + sub-pages ---------- */
+document.getElementById('settingsBtn').onclick = () => { stopPlayback(); openSettings(); };
+document.getElementById('modePill').onclick = () => { stopPlayback(); openSpeaker(); };
+document.getElementById('settingsBack').onclick = goHome;
+
+// Menu
+function openSettings(){
+  document.getElementById('menuHomeSub').textContent =
+    `${settings.homeDefaults.length} of ${DEFAULT_TONES.length} built-in commands shown`;
+  document.getElementById('menuSpeakerSub').textContent =
+    settings.outputMode === 'directional' ? 'Stereo (dual channel)' : 'Mono (single speaker)';
+  document.getElementById('menuHearingSub').textContent =
+    hearingProfile ? (hearingProfile.any ? 'Done — results saved' : 'Done — no clear reactions')
+                   : 'Optional check for older/deaf dogs';
+  showScreen('settings');
+}
+document.getElementById('menuHome').onclick = openHomeManage;
+document.getElementById('menuSpeaker').onclick = openSpeaker;
+document.getElementById('menuHearing').onclick = () => openTraining('settings');
+document.getElementById('menuShare').onclick = openShare;
+document.getElementById('menuHelp').onclick = () => showScreen('setHelp');
+
+// Sub-page back buttons return to the menu
+document.getElementById('homeBack').onclick = openSettings;
+document.getElementById('speakerBack').onclick = openSettings;
+document.getElementById('shareBack').onclick = openSettings;
+document.getElementById('helpBack').onclick = openSettings;
+
+// Home Commands sub-page: toggle which built-in cards show on the soundboard.
+function openHomeManage(){ renderHomeManage(); showScreen('setHome'); }
+function toggleHomeDefault(id){
+  const i = settings.homeDefaults.indexOf(id);
+  if(i >= 0) settings.homeDefaults.splice(i, 1); else settings.homeDefaults.push(id);
+  saveSettings();
+  renderHomeManage();
+  renderHome();   // keep the soundboard in sync for when we go back
+}
+function renderHomeManage(){
+  const list = document.getElementById('homeManageList');
+  list.innerHTML = '';
+  effectiveDefaults().forEach(tone => {
+    const on = isDefaultOnHome(tone.id);
+    const row = document.createElement('div');
+    row.className = 'card';
+    const info = document.createElement('div');
+    info.className = 'info'; info.style.cursor = 'default';
+    info.innerHTML = `<div class="name">${escapeHtml(tone.name)}</div><div class="desc">${escapeHtml(describeTone(tone))}</div>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm ' + (on ? 'btn-primary' : 'btn-ghost');
+    btn.style.width = 'auto'; btn.style.minWidth = '92px';
+    btn.textContent = on ? '✓ On home' : '+ Add';
+    btn.setAttribute('aria-label', (on ? 'Remove ' : 'Add ') + tone.name + (on ? ' from home' : ' to home'));
+    btn.onclick = () => toggleHomeDefault(tone.id);
+    const actions = document.createElement('div');
+    actions.className = 'actions'; actions.appendChild(btn);
+    row.appendChild(info); row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+// Speaker & Output sub-page
+function openSpeaker(){
+  refreshModeUI();
+  detectOutput();
+  document.getElementById('testStatus').textContent = '';
+  document.getElementById('testAnswer').style.display = 'none';
+  showScreen('setSpeaker');
+}
+function openShare(){
+  document.getElementById('shareBox').value = '';
+  document.getElementById('shareStatus').textContent = '';
+  showScreen('setShare');
+}
+
+function refreshModeUI(){
+  const dir = settings.outputMode === 'directional';
+  document.getElementById('modeBeaconBtn').classList.toggle('active', !dir);
+  document.getElementById('modeDirBtn').classList.toggle('active', dir);
+  document.getElementById('modeExplain').textContent = dir
+    ? 'Stereo — left/right cues play on separate channels. On a single-speaker device they’re automatically mixed to mono, so nothing is lost.'
+    : 'Mono — everything plays from a single spot your dog walks toward. Choose this if you only ever use one speaker.';
+}
+function setMode(mode){ settings.outputMode = mode; saveSettings(); refreshModeUI(); }
+document.getElementById('modeBeaconBtn').onclick = () => setMode('beacon');
+document.getElementById('modeDirBtn').onclick = () => setMode('directional');
+
+function detectOutput(){
+  const detail = document.getElementById('outputDetail');
+  let lines = [];
+  try{
+    ensureCtx();
+    const ch = audioCtx.destination.maxChannelCount;
+    lines.push(ch >= 2 ? 'Output route reports stereo capability (2+ channels).' : 'Output route reports mono.');
+  }catch(e){ lines.push('Audio not started yet.'); }
+  detail.innerHTML = lines.join('<br>') + '<br><span style="color:var(--muted)">A mono Bluetooth speaker often still reports stereo — the test below is the reliable check.</span>';
+  if(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices){
+    navigator.mediaDevices.enumerateDevices().then(devs => {
+      const outs = devs.filter(d => d.kind === 'audiooutput' && d.label);
+      if(outs.length){
+        const names = outs.map(o => o.label).join(', ');
+        detail.innerHTML = lines.join('<br>') + '<br><span style="color:var(--muted)">Devices: ' + escapeHtml(names) + '</span>';
+      }
+    }).catch(()=>{});
+  }
+}
+
+document.getElementById('runTestBtn').onclick = () => {
+  ensureCtx();
+  const st = document.getElementById('testStatus');
+  const dur = 500;
+  const now = audioCtx.currentTime + 0.1;
+  // Hard-left, then hard-right — always with real panning regardless of mode.
+  playHit({kind:'tone', wave:'triangle', freq:700, dur, pan:-1}, now, 0.8);
+  playHit({kind:'tone', wave:'triangle', freq:700, dur, pan:1},  now + 0.9, 0.8);
+  st.textContent = '◀ Left …';
+  setTimeout(() => { st.textContent = 'Right ▶'; }, 900);
+  setTimeout(() => {
+    st.textContent = '';
+    document.getElementById('testAnswer').style.display = 'block';
+  }, 1600);
+};
+document.getElementById('testYes').onclick = () => {
+  setMode('directional');
+  document.getElementById('testStatus').textContent = '✓ Set to Stereo (two speakers).';
+  document.getElementById('testAnswer').style.display = 'none';
+};
+document.getElementById('testNo').onclick = () => {
+  setMode('beacon');
+  document.getElementById('testStatus').textContent = '✓ Set to Mono (one speaker / phone).';
+  document.getElementById('testAnswer').style.display = 'none';
+};
+
+/* ---------- Settings: sharing ---------- */
+// Payload carries custom commands AND edits to the built-in sounds, so a partner
+// ends up with an identical soundboard.
+function sharePayload(){ return {v:1, tones:customTones, overrides:defaultOverrides}; }
+function haveSomethingToShare(){ return customTones.length || Object.keys(defaultOverrides).length; }
+function shareCounts(){ return `${customTones.length} custom, ${Object.keys(defaultOverrides).length} edited default(s)`; }
+
+function encodeShare(payload){
+  const json = JSON.stringify(payload);
+  return btoa(unescape(encodeURIComponent(json)));
+}
+function decodeShare(code){
+  const json = decodeURIComponent(escape(atob(code.trim())));
+  const data = JSON.parse(json);
+  const tones = Array.isArray(data) ? data : (data && data.tones);      // accept legacy bare array
+  if(!Array.isArray(tones)) throw new Error('bad');
+  const overrides = (data && !Array.isArray(data) && data.overrides && typeof data.overrides === 'object')
+    ? data.overrides : {};
+  return {tones, overrides};
+}
+function importData(data){
+  let added = 0, updated = 0, edited = 0;
+  (data.tones || []).forEach(t => {
+    if(!t || !t.id || !t.name || !t.type) return;
+    t.default = false;
+    const idx = customTones.findIndex(c => c.id === t.id);
+    if(idx >= 0){ customTones[idx] = t; updated++; } else { customTones.push(t); added++; }
+  });
+  Object.keys(data.overrides || {}).forEach(id => {
+    // Only accept overrides that target a real built-in sound.
+    if(DEFAULT_TONES.some(d => d.id === id)){
+      const o = data.overrides[id];
+      defaultOverrides[id] = {...o, id, default:true};
+      edited++;
+    }
+  });
+  saveCustomTones(customTones);
+  saveOverrides();
+  return {added, updated, edited};
+}
+function importSummary(r){
+  return `Imported: ${r.added} added, ${r.updated} updated, ${r.edited} default(s) edited.`;
+}
+
+document.getElementById('exportBtn').onclick = () => {
+  if(!haveSomethingToShare()){ setShareStatus('Nothing customized yet — edit or add a command first.'); return; }
+  const code = encodeShare(sharePayload());
+  document.getElementById('shareBox').value = code;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(
+      () => setShareStatus(`Share code copied (${shareCounts()}) — paste it to your partner.`),
+      () => setShareStatus('Code shown below — select and copy it.'));
+  } else { setShareStatus('Code shown below — select and copy it.'); }
+};
+document.getElementById('downloadBtn').onclick = () => {
+  if(!haveSomethingToShare()){ setShareStatus('Nothing customized yet — edit or add a command first.'); return; }
+  const blob = new Blob([JSON.stringify(sharePayload(), null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dog-soundboard-commands.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setShareStatus('Downloaded — send the file to your partner and use “Import file”.');
+};
+document.getElementById('importBtn').onclick = () => {
+  const code = document.getElementById('shareBox').value.trim();
+  if(!code){ setShareStatus('Paste a share code first.'); return; }
+  try{
+    const data = decodeShare(code);
+    const n = data.tones.length + Object.keys(data.overrides).length;
+    if(!confirm(`Import ${n} item(s)? Commands with the same name/id and edited defaults will be updated.`)) return;
+    setShareStatus(importSummary(importData(data)));
+  }catch(e){ setShareStatus('That code could not be read. Check you copied all of it.'); }
+};
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = decodeShareFromObject(JSON.parse(reader.result));
+      const n = data.tones.length + Object.keys(data.overrides).length;
+      if(!confirm(`Import ${n} item(s)?`)) return;
+      setShareStatus(importSummary(importData(data)));
+    }catch(err){ setShareStatus('That file could not be read.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
+function decodeShareFromObject(data){
+  const tones = Array.isArray(data) ? data : (data && data.tones);
+  if(!Array.isArray(tones)) throw new Error('bad');
+  const overrides = (data && !Array.isArray(data) && data.overrides && typeof data.overrides === 'object')
+    ? data.overrides : {};
+  return {tones, overrides};
+}
+function setShareStatus(msg){ document.getElementById('shareStatus').textContent = msg; }
+
+/* ---------- Import shared commands from URL hash (#code=…) if hosted ---------- */
+(function importFromHash(){
+  try{
+    const m = location.hash.match(/[#&]code=([^&]+)/);
+    if(m){
+      const data = decodeShare(decodeURIComponent(m[1]));
+      const n = data.tones.length + Object.keys(data.overrides).length;
+      if(confirm(`This link contains ${n} shared item(s). Import them?`)){
+        importData(data);
+      }
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }catch(e){}
+})();
+
+/* ============================================================
+   Training — hearing check
+   ============================================================ */
+const TEST_FREQS = [300, 500, 900, 1500, 3000, 6000];
+let hcIndex = 0, hcResponses = [];
+
+// Build a stored profile from the yes/no answers.
+function computeHearingProfile(freqs, responses){
+  const yes = freqs.filter((f, i) => responses[i] === true);
+  if(!yes.length) return { any:false, tested:freqs.slice(), yes:[] };
+  const low = Math.min(...yes), high = Math.max(...yes);
+  // "Best" = the responded pitch closest to 1200 Hz — a balance of carrying far
+  // and being easy for a dog to locate.
+  const best = yes.reduce((a, b) => Math.abs(b - 1200) < Math.abs(a - 1200) ? b : a);
+  return { any:true, tested:freqs.slice(), yes, low, high, best };
+}
+
+function hearingSummaryText(p){
+  if(!p) return '';
+  if(!p.any) return 'No clear reactions were recorded. Your dog may not have been paying attention, or may hear these pitches poorly. Try again in a quiet moment, keep the volume moderate, and consider a vet check if you’re concerned.';
+  return `Your dog responded to ${p.yes.length} of ${p.tested.length} pitches (${p.low}–${p.high} Hz). Best pitch: about ${p.best} Hz. Command tones outside this range are flagged in the editor.`;
+}
+
+// Home banner: gentle reminder before the check, or a compact summary after.
+function renderHearingHome(){
+  const rem = document.getElementById('hearingReminder');
+  const sum = document.getElementById('hearingSummary');
+  if(hearingProfile){
+    rem.style.display = 'none';
+    sum.style.display = 'block';
+    sum.innerHTML = '<span class="lbl">Hearing check</span><br>' + escapeHtml(hearingSummaryText(hearingProfile));
+  } else {
+    sum.style.display = 'none';
+    const show = !settings.hearingReminderDismissed && (settings.playCount || 0) >= 1;
+    rem.style.display = show ? 'block' : 'none';
+  }
+}
+document.getElementById('reminderTry').onclick = () => { stopPlayback(); openTraining('home'); };
+document.getElementById('reminderDismiss').onclick = () => {
+  settings.hearingReminderDismissed = true; saveSettings(); renderHearingHome();
+};
+
+// Training can be reached from the home reminder or the Settings menu; back returns to wherever it came from.
+let trainingReturn = 'home';
+function trainingExit(){ stopPlayback(); if(trainingReturn === 'settings') openSettings(); else goHome(); }
+document.getElementById('trainingBack').onclick = trainingExit;
+
+function openTraining(from){
+  trainingReturn = from === 'settings' ? 'settings' : 'home';
+  document.getElementById('hcIntro').style.display = 'block';
+  document.getElementById('hcStep').style.display = 'none';
+  document.getElementById('hcDone').style.display = 'none';
+  showScreen('training');
+}
+
+document.getElementById('hcStartBtn').onclick = () => { hcIndex = 0; hcResponses = []; hcEnterStep(); };
+document.getElementById('hcRedo').onclick = () => { hcIndex = 0; hcResponses = []; hcEnterStep(); };
+document.getElementById('hcFinish').onclick = trainingExit;
+document.getElementById('hcReplayBtn').onclick = () => hcPlayCurrent();
+document.getElementById('hcYes').onclick = () => hcAnswer(true);
+document.getElementById('hcNo').onclick = () => hcAnswer(false);
+document.getElementById('hcSkip').onclick = () => hcAnswer(null);
+
+function hcEnterStep(){
+  document.getElementById('hcIntro').style.display = 'none';
+  document.getElementById('hcDone').style.display = 'none';
+  document.getElementById('hcStep').style.display = 'block';
+  document.getElementById('hcProgress').textContent = `${hcIndex+1} / ${TEST_FREQS.length} · ${TEST_FREQS[hcIndex]} Hz`;
+  hcPlayCurrent();
+}
+
+// Play a short, attention-grabbing burst of slaps at the current test pitch.
+function hcPlayCurrent(){
+  ensureCtx();
+  const freq = TEST_FREQS[hcIndex];
+  const start = audioCtx.currentTime + 0.08;
+  const gap = 0.28;
+  for(let i = 0; i < 4; i++){ playSlap(freq, start + i * gap, 0.85, 0); }
+}
+
+function hcAnswer(resp){
+  hcResponses[hcIndex] = resp;   // true / false / null(skip)
+  hcIndex++;
+  if(hcIndex < TEST_FREQS.length){ hcEnterStep(); }
+  else { hcFinishCheck(); }
+}
+
+function hcFinishCheck(){
+  hearingProfile = computeHearingProfile(TEST_FREQS, hcResponses);
+  saveHearing();
+  document.getElementById('hcStep').style.display = 'none';
+  document.getElementById('hcDone').style.display = 'block';
+  document.getElementById('hcSummary').innerHTML = escapeHtml(hearingSummaryText(hearingProfile));
+  document.getElementById('hcApplyWrap').style.display = hearingProfile.any ? 'block' : 'none';
+}
+
+// Tune the Come Here guide loop around the best-heard pitch (saved as a default override).
+document.getElementById('hcApply').onclick = () => {
+  if(!hearingProfile || !hearingProfile.any) return;
+  const best = hearingProfile.best;
+  const base = DEFAULT_TONES.find(t => t.id === 'default-come-here');
+  const cur = defaultOverrides['default-come-here'] ? {...base, ...defaultOverrides['default-come-here']} : {...base};
+  const clamp = f => Math.max(hearingProfile.low, Math.min(hearingProfile.high, Math.round(f)));
+  cur.id = 'default-come-here'; cur.default = true;
+  cur.leftFreq = clamp(best * 0.85);
+  cur.rightFreq = clamp(best * 1.18);
+  defaultOverrides['default-come-here'] = cur;
+  saveOverrides();
+  document.getElementById('hcApply').textContent = `✓ Come Here set to ~${cur.leftFreq}/${cur.rightFreq} Hz`;
+};
+
+/* ---------- Boot ---------- */
+renderHome();
+</script>
+
+</body>
+</html>
